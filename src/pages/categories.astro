@@ -1,0 +1,26 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { getCategories } from '../lib/wp';
+
+const categories = await getCategories();
+---
+
+<BaseLayout title="分类" description="文章分类列表">
+  {categories.length === 0 ? (
+    <p class="text-xs antialiased opacity-60 py-1">暂无分类</p>
+  ) : (
+    categories.map((cat) => (
+      <section class="relative my-10 first-of-type:mt-0 last-of-type:mb-0">
+        <h2 class="my-0!">{cat.name}</h2>
+        <span class="text-xs antialiased opacity-60">{cat.count ?? 0}</span>
+        <a
+          class="absolute inset-0 text-[0px]"
+          href={`/category/${cat.slug}`}
+          aria-label={`查看分类：${cat.name}`}
+        >
+          {cat.name}
+        </a>
+      </section>
+    ))
+  )}
+</BaseLayout>

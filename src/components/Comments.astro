@@ -1,0 +1,365 @@
+---
+/**
+ * 评论组件
+ * - 支持通过环境变量 COMMENTS 控制开关
+ * - 使用 Cravatar 镜像加速头像
+ */
+import type { WPComment } from '../lib/wp';
+
+interface Props {
+  comments: WPComment[];
+  postId: number;
+  apiRoot: string;
+}
+
+const { comments, postId, apiRoot } = Astro.props;
+
+// 检查是否启用评论功能
+const commentsEnabled = import.meta.env.COMMENTS === 'true' || import.meta.env.COMMENTS === true;
+
+if (!commentsEnabled) {
+  // 如果评论功能未启用，则不渲染任何内容
+  return;
+}
+
+// 评论数据（按父子分组）
+const commentsByParent = new Map<number, typeof comments>();
+comments.forEach((c) => {
+  const arr = commentsByParent.get(c.parent) || [];
+  arr.push(c);
+  commentsByParent.set(c.parent, arr);
+});
+const topComments = comments.filter((c) => c.parent === 0);
+const childrenOf = (id: number) => commentsByParent.get(id) ?? [];
+---
+
+<!-- 评论列表 -->
+<section id="comments-list" class="mt-24">
+  <h2 class="my-0! pb-2.5">评论</h2>
+  {topComments.length > 0 ? (
+    topComments.map((c, i) => (
+      <>
+        {i > 0 && <hr class="my-3 border-t border-black/10 dark:border-white/20" style="margin-bottom:-10px" />}
+        <section class="relative my-10 first-of-type:mt-0 last-of-type:mb-0">
+          <div class="flex items-center">
+            {c.avatar ? (
+              <img
+                class="rounded-full border-[0.5px] border-black/10 bg-white/50 ltr:mr-3 rtl:ml-3 dark:bg-white/90!"
+                src={c.avatar}
+                alt={c.authorName}
+                width="32"
+                height="32"
+                style="width:32px!important;height:32px!important;object-fit:cover"
+              />
+            ) : null}
+            <div style="margin-left:8px">
+              {c.authorUrl ? (
+                <a class="no-underline my-0!" style="font-size:12px!important" href={c.authorUrl} target="_blank" rel="noopener">{c.authorName}</a>
+              ) : (
+                <span class="my-0!" style="font-size:12px!important">{c.authorName}</span>
+              )}
+              <div class="text-xs antialiased opacity-60">
+                {new Date(c.date).toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' })}
+              </div>
+            </div>
+          </div>
+          <div class="mt-3 prose prose-neutral dark:prose-invert" set:html={c.contentHtml}></div>
+          <div class="mt-3">
+            <button type="button" class="btn not-prose" style="padding:2px 8px;font-size:10px" data-reply={String(c.id)}>回复</button>
+          </div>
+
+          {(Array.isArray(c.children) ? c.children.length > 0 : childrenOf(c.id).length > 0) && (
+            <div class="mt-6 ltr:ml-8 rtl:mr-8 border-l-[0.5px] border-black/10 pl-3 dark:border-white/30">
+              {(Array.isArray(c.children) && c.children.length > 0 ? c.children : childrenOf(c.id)).map((r) => (
+                <section class="relative my-6 first-of-type:mt-0 last-of-type:mb-0">
+                  <div class="flex items-center">
+                    {r.avatar ? (
+                      <img
+                        class="rounded-full border-[0.5px] border-black/10 bg-white/50 ltr:mr-3 rtl:ml-3 dark:bg-white/90!"
+                        src={r.avatar}
+                        alt={r.authorName}
+                        width="32"
+                        height="32"
+                        style="width:32px!important;height:32px!important;object-fit:cover"
+                      />
+                    ) : null}
+                    <div style="margin-left:8px">
+                      {r.authorUrl ? (
+                        <a class="no-underline my-0!" style="font-size:12px!important" href={r.authorUrl} target="_blank" rel="noopener">{r.authorName}</a>
+                      ) : (
+                        <span class="my-0!" style="font-size:12px!important">{r.authorName}</span>
+                      )}
+                      <div class="text-xs antialiased opacity-60">
+                        {new Date(r.date).toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' })}
+                      </div>
+                    </div>
+                  </div>
+                  <div class="mt-2 prose prose-neutral dark:prose-invert" set:html={r.contentHtml}></div>
+                  <div class="mt-3">
+                    <button type="button" class="btn not-prose" style="padding:2px 8px;font-size:10px" data-reply={String(r.id)}>回复</button>
+                  </div>
+                  {(Array.isArray(r.children) ? r.children.length > 0 : childrenOf(r.id).length > 0) && (
+                    <div class="mt-6 ltr:ml-8 rtl:mr-8 border-l-[0.5px] border-black/10 pl-3 dark:border-white/30">
+                      {(Array.isArray(r.children) ? r.children : childrenOf(r.id)).map((g) => (
+                        <section class="relative my-6 first-of-type:mt-0 last-of-type:mb-0">
+                          <div class="flex items-center">
+                            {g.avatar ? (
+                              <img
+                                class="rounded-full border-[0.5px] border-black/10 bg-white/50 ltr:mr-3 rtl:ml-3 dark:bg-white/90!"
+                                src={g.avatar}
+                                alt={g.authorName}
+                                width="32"
+                                height="32"
+                                style="width:32px!important;height:32px!important;object-fit:cover"
+                              />
+                            ) : null}
+                            <div style="margin-left:8px">
+                              {g.authorUrl ? (
+                                <a class="no-underline my-0!" style="font-size:12px!important" href={g.authorUrl} target="_blank" rel="noopener">{g.authorName}</a>
+                              ) : (
+                                <span class="my-0!" style="font-size:12px!important">{g.authorName}</span>
+                              )}
+                              <div class="text-xs antialiased opacity-60">
+                                {new Date(g.date).toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' })}
+                              </div>
+                            </div>
+                          </div>
+                          <div class="mt-2 prose prose-neutral dark:prose-invert" set:html={g.contentHtml}></div>
+                          <div class="mt-3">
+                            <button type="button" class="btn not-prose" style="padding:2px 8px;font-size:10px" data-reply={String(g.id)}>回复</button>
+                          </div>
+                        </section>
+                      ))}
+                    </div>
+                  )}
+                </section>
+              ))}
+            </div>
+          )}
+        </section>
+      </>
+    ))
+  ) : (
+    <p class="text-xs antialiased opacity-60">暂无评论</p>
+  )}
+</section>
+
+<!-- 评论提交表单 -->
+<section class="mt-24">
+  <h2 class="my-0! pb-2.5">发表评论</h2>
+  <form id="comment-form" class="space-y-3" novalidate data-api-root={apiRoot} data-post-id={postId}>
+    <div class="flex flex-col">
+      <label class="text-xs antialiased opacity-60 mb-1" for="c-name">昵称</label>
+      <input id="c-name" name="name" required class="rounded-lg border px-5 py-1" placeholder="请输入昵称" />
+    </div>
+    <div class="flex flex-col">
+      <label class="text-xs antialiased opacity-60 mb-1" for="c-email">邮箱</label>
+      <input id="c-email" name="email" type="email" required class="rounded-lg border px-5 py-1" placeholder="name@example.com" />
+    </div>
+    <div class="flex flex-col">
+      <label class="text-xs antialiased opacity-60 mb-1" for="c-url">网站地址</label>
+      <input id="c-url" name="url" type="url" class="rounded-lg border px-5 py-1" placeholder="https://your.site" />
+    </div>
+    <div class="flex flex-col">
+      <label class="text-xs antialiased opacity-60 mb-1" for="c-content">评论内容</label>
+      <textarea id="c-content" name="content" rows="5" required class="rounded-lg border px-5 py-1" placeholder="请输入评论内容"></textarea>
+    </div>
+    <input type="hidden" id="c-parent" name="parent_id" value="" />
+    <div class="mt-3 flex items-center gap-4">
+      <button type="submit" class="btn not-prose">提交评论</button>
+      <span id="c-status" class="text-xs antialiased opacity-60"></span>
+    </div>
+  </form>
+</section>
+
+<script>
+  // 客户端提交评论并实时更新
+  (() => {
+    const form = document.getElementById('comment-form') as HTMLFormElement;
+    const statusEl = document.getElementById('c-status');
+    const apiRoot = (form?.dataset?.apiRoot || '').replace(/\/+$/,'');
+    const api = `${apiRoot}/wp-json/wp/v2/comments`;
+    const postId = Number(form?.dataset?.postId || 0);
+
+    function setStatus(msg: string, isError = false) {
+      if (!statusEl) return;
+      statusEl.textContent = msg;
+      statusEl.style.color = isError ? 'crimson' : '';
+    }
+
+    function validEmail(email: string) {
+      return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+    }
+
+    // 轮询评论并实时更新
+    const commentsContainer = document.getElementById('comments-list');
+    async function fetchComments() {
+      try {
+        const res = await fetch(`${apiRoot}/wp-json/wp/v2/comments?post=${postId}&per_page=100`);
+        if (!res.ok) return;
+        const data = await res.json();
+        const comments = Array.isArray(data) ? data : [];
+
+        // 将扁平的评论数据转换成嵌套结构
+        const commentsWithChildren = buildCommentTree(comments);
+        renderCommentsList(commentsWithChildren);
+      } catch {}
+    }
+
+    // 将扁平评论列表转换成嵌套树结构
+    function buildCommentTree(flatComments: any[]): any[] {
+      const commentMap = new Map<number, any>();
+      const rootComments: any[] = [];
+
+      // 第一遍：创建所有评论的副本，并初始化 children 数组
+      flatComments.forEach(comment => {
+        commentMap.set(comment.id, { ...comment, children: [] });
+      });
+
+      // 第二遍：建立父子关系
+      flatComments.forEach(comment => {
+        const commentWithChildren = commentMap.get(comment.id);
+        if (comment.parent === 0) {
+          // 顶级评论
+          rootComments.push(commentWithChildren);
+        } else {
+          // 子评论，添加到父评论的 children 数组
+          const parent = commentMap.get(comment.parent);
+          if (parent) {
+            parent.children.push(commentWithChildren);
+          } else {
+            // 如果找不到父评论，将其作为顶级评论处理
+            rootComments.push(commentWithChildren);
+          }
+        }
+      });
+
+      return rootComments;
+    }
+
+    // 构建头像 URL，使用 Cravatar 镜像加速
+    function buildAvatar(hash?: string, urls?: Record<string, string>) {
+      if (hash) {
+        return `https://cravatar.cn/avatar/${hash}?s=96&d=identicon`;
+      }
+      if (urls) {
+        const gravatarUrl = urls['96'] || urls['48'] || urls['24'] || '';
+        // 将 Gravatar URL 替换为 Cravatar 镜像
+        return gravatarUrl.replace('www.gravatar.com', 'cravatar.cn').replace('gravatar.com', 'cravatar.cn');
+      }
+      return '';
+    }
+
+    function escapeHtml(s: string) {
+      return (s||'').replace(/[&<>]/g, (c)=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c as '&'|'<'|'>'] || c));
+    }
+
+    function renderOne(c: any): string {
+      const avatar = buildAvatar(c.author_avatar_hash, c.author_avatar_urls);
+      const name = c.author_url
+        ? `<a class="no-underline" style="font-size:12px!important" href="${escapeHtml(c.author_url)}" target="_blank" rel="noopener">${escapeHtml(c.author_name||'访客')}</a>`
+        : `<span style="font-size:12px!important">${escapeHtml(c.author_name||'访客')}</span>`;
+      const dateStr = new Date(c.date).toLocaleDateString('zh-CN', { year:'numeric', month:'2-digit', day:'2-digit' });
+      const children = (Array.isArray(c.children) ? c.children : []).map(renderOne).join('');
+      const childBlock = children ? `<div class="mt-6 ltr:ml-8 rtl:mr-8 border-l-[0.5px] border-black/10 pl-3 dark:border-white/30">${children}</div>` : '';
+      return `
+        <section class="relative my-6 first-of-type:mt-0 last-of-type:mb-0">
+          <div class="flex items-center">
+              ${avatar ? `<img class="rounded-full border-[0.5px] border-black/10 ltr:mr-3 rtl:ml-3 dark:bg-white/90!" src="${escapeHtml(avatar)}" alt="${escapeHtml(c.author_name||'访客')}" width="32" height="32" style="width:32px!important;height:32px!important;object-fit:cover"/>` : ''}
+            <div style="margin-left:8px">
+              ${name}
+              <div class="text-xs antialiased opacity-60">${dateStr}</div>
+            </div>
+          </div>
+          <div class="mt-2 prose prose-neutral dark:prose-invert">${c.content?.rendered || ''}</div>
+          <div class="mt-3"><button type="button" class="btn not-prose" style="padding:2px 8px;font-size:10px" data-reply="${String(c.id)}">回复</button></div>
+          ${childBlock}
+        </section>`;
+    }
+
+    function renderCommentsList(list: any[]) {
+      if (!commentsContainer) return;
+      const title = `<h2 class="my-0! pb-2.5">评论</h2>`;
+      // list 已经是只包含顶级评论的树形结构，不需要再过滤
+      const body = (list||[]).map(renderOne).join('<hr class="my-3 border-t border-black/10 dark:border-white/20" style="margin-bottom:-10px" />');
+      commentsContainer.innerHTML = title + (body || `<p class="text-xs antialiased opacity-60">暂无评论</p>`);
+    }
+
+    // 初始化并定时刷新
+    fetchComments();
+    setInterval(fetchComments, 30000);
+
+    // 点击"回复"按钮
+    document.addEventListener('click', (ev) => {
+      const t = ev.target as HTMLElement;
+      const btn = t.closest('[data-reply]') as HTMLElement | null;
+      if (btn) {
+        const id = Number(btn.getAttribute('data-reply') || 0);
+        const parentEl = document.getElementById('c-parent') as HTMLInputElement;
+        if (parentEl) parentEl.value = String(id);
+        if (statusEl) statusEl.textContent = `回复评论 #${id}`;
+        form?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    });
+
+    // 提交评论
+    form?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (!postId) {
+        setStatus('无法获取文章 ID，提交失败', true);
+        return;
+      }
+
+      const name = (document.getElementById('c-name') as HTMLInputElement)?.value?.trim() || '';
+      const email = (document.getElementById('c-email') as HTMLInputElement)?.value?.trim() || '';
+      const url = (document.getElementById('c-url') as HTMLInputElement)?.value?.trim() || '';
+      const content = (document.getElementById('c-content') as HTMLTextAreaElement)?.value?.trim() || '';
+
+      if (!name || !email || !content) {
+        setStatus('昵称、邮箱与评论内容为必填', true);
+        return;
+      }
+      if (!validEmail(email)) {
+        setStatus('邮箱格式不正确', true);
+        return;
+      }
+
+      setStatus('提交中...');
+      try {
+        const payload: any = {
+          post: postId,
+          author_name: name,
+          author_email: email,
+          author_url: url || undefined,
+          content,
+        };
+
+        const parentVal = (document.getElementById('c-parent') as HTMLInputElement)?.value;
+        if (parentVal) payload.parent = Number(parentVal) || 0;
+
+        const res = await fetch(api, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+          },
+          body: JSON.stringify(payload),
+          credentials: 'omit',
+        });
+
+        if (!res.ok) {
+          const text = await res.text();
+          throw new Error(`提交失败：${res.status} ${text}`);
+        }
+
+        setStatus('提交成功，若需审核请稍后刷新查看');
+        form.reset();
+
+        // 立即刷新评论列表
+        setTimeout(fetchComments, 1000);
+      } catch (err: any) {
+        setStatus(err?.message || String(err), true);
+      }
+    });
+  })();
+</script>

@@ -1,0 +1,24 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { getTags } from '../lib/wp';
+
+const tags = await getTags();
+---
+
+<BaseLayout title="标签" description="文章标签列表">
+  {tags.length === 0 ? (
+    <p class="text-xs antialiased opacity-60 py-1">暂无标签</p>
+  ) : (
+    <div class="flex flex-wrap" style="gap: 14px 8px;">
+      {tags.map((tag) => (
+        <a
+          class="inline-flex items-center rounded-lg px-5 py-2 no-underline"
+          href={`/tag/${tag.slug}`}
+        >
+          <span>{tag.name}</span>
+          <span class="ml-1 text-xs antialiased opacity-60">({tag.count ?? 0})</span>
+        </a>
+      ))}
+    </div>
+  )}
+</BaseLayout>

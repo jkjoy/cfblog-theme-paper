@@ -1,0 +1,82 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Comments from '../../components/Comments.astro';
+import { getPostBySlug, getAllPostSlugs, getCategoriesByIds, getTagsByIds, getCommentsByPostId } from '../../lib/wp';
+import { mdToHtml } from '../../lib/markdown';
+
+// 导入代码高亮样式
+const codeStylesUrl = '/assets/code-macos.css';
+const codeCopyUrl = '/assets/code-copy.js';
+
+// 预生成文章静态路径
+export async function getStaticPaths() {
+  const slugs = await getAllPostSlugs();
+  console.log(`[getStaticPaths] 为 ${slugs.length} 篇文章生成静态路径`);
+  console.log(`[getStaticPaths] 所有 slugs:`, slugs);
+  return slugs.map((slug) => ({ params: { slug } }));
+}
+
+const slug = Astro.params.slug!;
+console.log(`[post] 请求的 slug: ${slug}`);
+const post = await getPostBySlug(slug);
+const pubDate = post ? new Date(post.date).toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' }) : '';
+const contentHtml = post && post.content ? mdToHtml(post.content) : '';
+const categories = post?.categories?.length ? await getCategoriesByIds(post.categories) : [];
+const tags = post?.tags?.length ? await getTagsByIds(post.tags) : [];
+
+// 评论数据
+const commentsRaw = post ? await getCommentsByPostId(post.id) : [];
+const API_ROOT = import.meta.env.CFBLOG_API ?? 'https://cfblog.zxd.im';
+---
+
+<BaseLayout title={post ? post.title : '文章未找到'} description={post ? post.excerpt ?? '' : '未找到该文章'}>
+  <link slot="head" rel="stylesheet" href={codeStylesUrl} />
+  {post ? (
+    <article>
+      <header class="mb-14">
+        <h1 class="my-0! pb-2.5">{post.title}</h1>
+        <div class="text-xs antialiased opacity-60">
+          <time datetime={post.date}>{pubDate}</time>
+          {categories.length > 0 && (
+            <>
+              <span class="mx-1">&middot;</span>
+              {categories.map((c, i) => (
+                <>
+                  <a class="underline" href={`/category/${c.slug}`}>{c.name}</a>
+                  {i < categories.length - 1 && <span>、</span>}
+                </>
+              ))}
+            </>
+          )}
+        </div>
+      </header>
+
+      <section set:html={contentHtml}></section>
+
+      {tags.length > 0 && (
+        <footer class="mt-12 flex flex-wrap">
+          {tags.map((t) => (
+            <a
+              class="mb-1.5 rounded-lg bg-black/[3%] px-5 py-1 no-underline hover:bg-black/[6%] ltr:mr-1.5 rtl:ml-1.5 dark:bg-white/[8%] dark:hover:bg-white/[12%]"
+              href={`/tag/${t.slug}`}
+            >
+              {t.name}
+            </a>
+          ))}
+        </footer>
+      )}
+
+      <!-- 评论组件（支持环境变量开关） -->
+      <Comments comments={commentsRaw} postId={post?.id ?? 0} apiRoot={API_ROOT} />
+
+      <script defer src="/assets/highlight.min.js" onload="hljs.initHighlightingOnLoad();"></script>
+      <script defer src={codeCopyUrl}></script>
+    </article>
+  ) : (
+    <article class="notfound">
+      <h1>文章未找到</h1>
+      <p>抱歉，未能找到该文章。</p>
+    </article>
+  )}
+</BaseLayout>
+

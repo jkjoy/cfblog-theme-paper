@@ -1,0 +1,57 @@
+---
+import BaseLayout from '../../../../layouts/BaseLayout.astro';
+import PostCard from '../../../../components/PostCard.astro';
+import Pagination from '../../../../components/Pagination.astro';
+import { getTags, getPostsByTag, PAGE_SIZE } from '../../../../lib/wp';
+
+// 预生成每个标签的分页静态路径
+export async function getStaticPaths() {
+  const tags = await getTags();
+  return tags.flatMap((t) => {
+    const totalPages = Math.max(1, Math.ceil((t.count ?? 0) / PAGE_SIZE));
+    return Array.from({ length: totalPages }, (_, i) => ({
+      params: { slug: t.slug, page: String(i + 1) },
+    }));
+  });
+}
+
+// 标签 slug -> id 与当前页
+const slug = Astro.params.slug!;
+const page = Number(Astro.params.page || '1');
+const tags = await getTags();
+const tag = tags.find((t) => t.slug === slug);
+const tagId = tag?.id;
+
+const { posts, totalPages } = tagId
+  ? await getPostsByTag(tagId, page, PAGE_SIZE)
+  : { posts: [], totalPages: 1 };
+---
+
+<BaseLayout title={tag ? `标签：${tag.name}` : '标签未找到'} description={tag ? `包含 ${tag.count ?? 0} 篇文章` : '未找到该标签'}>
+  {tag ? (
+    <>
+      <section class="grid">
+        {posts.length === 0 ? (
+          <p class="empty">此标签暂无文章</p>
+        ) : (
+          posts.map((post) => <PostCard post={post} />)
+        )}
+      </section>
+      <Pagination current={page} totalPages={totalPages} base={`/tag/${slug}/page`} />
+    </>
+  ) : (
+    <p class="empty">未找到该标签</p>
+  )}
+</BaseLayout>
+
+<style>
+  .grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+  .empty {
+    color: var(--muted, #777);
+    padding: 12px 0;
+  }
+</style>

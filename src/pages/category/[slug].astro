@@ -1,0 +1,39 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import PostCard from '../../components/PostCard.astro';
+import Pagination from '../../components/Pagination.astro';
+import { getCategories, getPostsByCategory, PAGE_SIZE } from '../../lib/wp';
+
+// 预生成所有分类的静态路径
+export async function getStaticPaths() {
+  const cats = await getCategories();
+  return cats.map((c) => ({ params: { slug: c.slug } }));
+}
+
+// 分类 slug -> id
+const slug = Astro.params.slug!;
+const cats = await getCategories();
+const cat = cats.find((c) => c.slug === slug);
+const catId = cat?.id;
+
+// 当前页（仅生成第一页，分页链接将指向 /category/[slug]/page/[page]）
+const current = 1;
+const { posts, totalPages } = catId
+  ? await getPostsByCategory(catId, current, PAGE_SIZE)
+  : { posts: [], totalPages: 1 };
+---
+
+<BaseLayout title={cat ? `分类：${cat.name}` : '分类未找到'} description={cat ? `包含 ${cat.count ?? 0} 篇文章` : '未找到该分类'}>
+  {cat ? (
+    <>
+      {posts.length === 0 ? (
+        <p class="text-xs antialiased opacity-60 py-1">此分类暂无文章</p>
+      ) : (
+        posts.map((post) => <PostCard post={post} />)
+      )}
+      <Pagination current={current} totalPages={totalPages} base={`/category/${slug}/page`} />
+    </>
+  ) : (
+    <p class="text-xs antialiased opacity-60 py-1">未找到该分类</p>
+  )}
+</BaseLayout>

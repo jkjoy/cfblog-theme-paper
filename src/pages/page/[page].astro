@@ -1,0 +1,26 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import PostCard from '../../components/PostCard.astro';
+import Pagination from '../../components/Pagination.astro';
+import { getPosts, PAGE_SIZE, getTotalPages } from '../../lib/wp';
+
+// 预生成所有分页静态路径 [getStaticPaths()](src/pages/page/[page].astro:6)
+export async function getStaticPaths() {
+  const totalPages = await getTotalPages(PAGE_SIZE);
+  const count = totalPages || 1;
+  return Array.from({ length: count }, (_, i) => ({
+    params: { page: String(i + 1) },
+  }));
+}
+
+const current = Number(Astro.params.page) || 1;
+const { posts, totalPages } = await getPosts(current, PAGE_SIZE);
+---
+
+<BaseLayout title={`CFBlog · 第 ${current} 页`} description="文章分页列表">
+  {posts.map((post) => (
+    <PostCard post={post} />
+  ))}
+
+  <Pagination current={current} totalPages={totalPages} base="/page" />
+</BaseLayout>

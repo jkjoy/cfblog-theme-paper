@@ -1,0 +1,149 @@
+---
+import { getSiteInfo, getSettings } from '../lib/wp';
+
+type Props = { title?: string; description?: string; };
+
+const props = Astro.props as Props;
+const site = await getSiteInfo();
+const settings = await getSettings();
+const brandName = site?.name ?? 'CFBlog';
+const pageTitle = props.title ?? brandName;
+const pageDesc = props.description ?? site?.description ?? '基于 WordPress REST API 的 Astro 博客';
+const footerText = settings?.site_footer_text;
+const favicon = settings?.site_favicon ?? '/favicon.svg';
+const faviconType = favicon.endsWith('.svg') ? 'image/svg+xml' :
+                    favicon.endsWith('.png') ? 'image/png' :
+                    favicon.endsWith('.ico') ? 'image/x-icon' : 'image/svg+xml';
+---
+<html lang="zh-CN" class="not-ready lg:text-base" style="--bg: #faf8f1">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width" />
+    <meta name="generator" content={Astro.generator} />
+    <link rel="icon" type={faviconType} href={favicon} />
+    <meta name="description" content={pageDesc} />
+    <meta name="theme-color" content="#faf8f1" />
+    <title>{pageTitle}</title>
+    <link rel="stylesheet" href="/assets/main.css" />
+    <link rel="preload" as="image" href="/assets/theme.png" />
+    <link rel="alternate" type="application/rss+xml" title={`${brandName} RSS Feed`} href="/rss.xml" />
+    <link rel="sitemap" href="/sitemap-index.xml" />
+    {settings?.head_html && <Fragment set:html={settings.head_html} />}
+    <slot name="head" />
+  </head>
+  <body class="bg-(--bg) text-black antialiased duration-200 ease-out [-webkit-tap-highlight-color:transparent] dark:text-white">
+    <header
+      class="mx-auto flex h-[4.5rem] max-w-(--w) px-8 whitespace-nowrap lg:justify-center"
+    >
+      <div class="relative z-50 flex items-center ltr:mr-auto rtl:ml-auto">
+        <a class="-translate-y-[1px] text-2xl font-medium" href="/">{brandName}</a>
+        <div
+          class="btn-dark text-[0px] ltr:ml-4 rtl:mr-4 h-6 w-6 shrink-0 cursor-pointer [background:url(./theme.png)_left_center/_auto_theme('spacing.6')_no-repeat] [transition:_background-position_0.4s_steps(5)] dark:[background-position:right]"
+          role="button"
+          aria-label="Dark"
+        ></div>
+      </div>
+
+      <div
+        class="btn-menu relative z-50 flex h-[4.5rem] w-[5rem] shrink-0 cursor-pointer flex-col items-center justify-center gap-2.5 lg:hidden ltr:-mr-8 rtl:-ml-8"
+        role="button"
+        aria-label="Menu"
+      ></div>
+
+      <div
+        class="nav-wrapper fixed inset-x-0 top-full z-40 flex h-full flex-col justify-center bg-(--bg) pb-16 duration-200 select-none lg:static lg:h-auto lg:flex-row lg:bg-transparent! lg:pb-0 lg:transition-none"
+      >
+        <nav
+          class="lg:ml-12 lg:flex lg:flex-row lg:items-center lg:space-x-10 rtl:space-x-reverse"
+        >
+          <a
+            class="block text-center text-xl leading-[5rem] lg:text-base lg:font-normal"
+            href="/archives"
+            >归档</a
+          >
+          <a
+            class="block text-center text-xl leading-[5rem] lg:text-base lg:font-normal"
+            href="/categories"
+            >分类</a
+          >
+          <a
+            class="block text-center text-xl leading-[5rem] lg:text-base lg:font-normal"
+            href="/tags"
+            >标签</a
+          >
+          <a
+            class="block text-center text-xl leading-[5rem] lg:text-base lg:font-normal"
+            href="/links"
+            >链接</a
+          >
+          <a
+            class="block text-center text-xl leading-[5rem] lg:text-base lg:font-normal"
+            href="/about"
+            >关于</a
+          >
+          
+        </nav>
+      </div>
+    </header>
+    <main class="prose prose-neutral dark:prose-invert relative mx-auto min-h-[calc(100vh-9rem)] max-w-(--w) px-8 pt-14 pb-16">
+      <slot />
+    </main>
+    <footer
+      class="mx-auto flex h-[4.5rem] max-w-(--w) items-center px-8 text-xs tracking-wider uppercase opacity-60"
+    >
+      <div class="mr-auto">
+        &copy; {new Date().getFullYear()} <a class="link" href="/">{brandName}</a>
+      </div>
+      {footerText && (
+        <!--<div class="mx-6 truncate">{footerText}</div>-->
+      )}
+      <a class="link mx-6" href="https://astro.build/" rel="noopener" target="_blank">powered by astro</a>
+      <a class="link" href="https://github.com/jkjoy/astro-paper-cfblog" rel="noopener" target="_blank">paper</a>
+    </footer>
+    <script>
+      // base: 去除 not-ready 以启用过渡
+      const htmlClass = document.documentElement.classList;
+      setTimeout(() => {
+        htmlClass.remove('not-ready');
+      }, 10);
+
+      // mobile menu
+      const btnMenu = document.querySelector('.btn-menu');
+      if (btnMenu) {
+        btnMenu.addEventListener('click', () => {
+          htmlClass.toggle('open');
+        });
+      }
+
+      // dark theme
+      const metaTheme = document.querySelector('meta[name="theme-color"]');
+      const getLightBg = () => {
+        const v = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim();
+        return v || '#faf8f1';
+      };
+      const setDark = (isDark) => {
+        if (metaTheme) metaTheme.setAttribute('content', isDark ? '#000' : getLightBg());
+        htmlClass[isDark ? 'add' : 'remove']('dark');
+        localStorage.setItem('dark', isDark ? 'true' : 'false');
+      };
+
+      // init dark
+      const darkScheme = window.matchMedia('(prefers-color-scheme: dark)');
+      const stored = localStorage.getItem('dark');
+      setDark(stored ? stored === 'true' : darkScheme.matches);
+
+      // listen system
+      darkScheme.addEventListener('change', (event) => {
+        setDark(event.matches);
+      });
+
+      // manual switch
+      const btnDark = document.querySelector('.btn-dark');
+      if (btnDark) {
+        btnDark.addEventListener('click', () => {
+          setDark(localStorage.getItem('dark') !== 'true');
+        });
+      }
+    </script>
+  </body>
+</html>

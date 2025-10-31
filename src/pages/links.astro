@@ -1,0 +1,104 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { getLinks } from '../lib/wp';
+
+// 从 /wp-json/wp/v2/links 获取友链
+const linksData = await getLinks();
+const groups = linksData.reduce((acc, l) => {
+  const key = l.category?.name ?? '链接';
+  (acc[key] ??= []).push(l);
+  return acc;
+}, {} as Record<string, typeof linksData>);
+const catNames = Object.keys(groups);
+
+// 静态备用列表（当远端未提供 links 时显示）
+const fallbackLinks = [
+  { name: 'Cloudflare Pages', url: 'https://pages.cloudflare.com/', desc: '轻量快速的静态站点托管' },
+  { name: 'WordPress REST API', url: 'https://developer.wordpress.org/rest-api/', desc: '内容数据来源' },
+  { name: 'Astro', url: 'https://astro.build/', desc: '站点框架' },
+];
+---
+
+<BaseLayout title="链接" description="友链与资源">
+  <style>
+    .links-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 1.5rem;
+    }
+    @media (min-width: 768px) {
+      .links-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+    @media (min-width: 1024px) {
+      .links-grid {
+        grid-template-columns: repeat(3, 1fr);
+      }
+    }
+    .link-card {
+      border-color: rgba(0, 0, 0, 0.1);
+      transition: border-color 0.2s ease;
+    }
+    .link-card:hover {
+      border-color: rgba(0, 0, 0, 0.2);
+    }
+    .dark .link-card {
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+    .dark .link-card:hover {
+      border-color: rgba(255, 255, 255, 0.3);
+    }
+  </style>
+
+  {linksData.length > 0 ? (
+    catNames.map((name) => (
+      <section class="relative my-10 first-of-type:mt-0 last-of-type:mb-0">
+        <h2 class="mb-8">{name}</h2>
+        <div class="links-grid">
+          {groups[name].map((l) => (
+            <section class="relative flex flex-col items-center text-center border rounded-lg link-card" style="padding: 1.5rem;">
+              <img
+                style="width: 64px; height: 64px; object-fit: cover; margin-bottom: 1rem;"
+                class="rounded-full border-[0.5px] border-black/10 bg-white/50 dark:bg-white/90!"
+                src={l.avatar || 'https://cravatar.cn/avatar/00000000000000000000000000000000?s=64&d=identicon'}
+                alt={l.name}
+              />
+              <h3 class="my-0! font-medium" style="font-size: 1rem;">{l.name}</h3>
+              {l.description && (
+                <div class="text-xs antialiased opacity-60" style="margin-top: 0.5rem;">{l.description}</div>
+              )}
+              <a
+                class="absolute inset-0 text-[0px]"
+                href={l.url}
+                target={l.target || '_blank'}
+                rel="noopener"
+              >
+                {l.name}
+              </a>
+            </section>
+          ))}
+        </div>
+      </section>
+    ))
+  ) : (
+    <section class="relative my-10 first-of-type:mt-0 last-of-type:mb-0">
+      <h2 class="mb-8">Links</h2>
+      <div class="links-grid">
+        {fallbackLinks.map((l) => (
+          <section class="relative flex flex-col items-center text-center border rounded-lg link-card" style="padding: 1.5rem;">
+            <img
+              style="width: 64px; height: 64px; object-fit: cover; margin-bottom: 1rem;"
+              class="rounded-full border-[0.5px] border-black/10 bg-white/50 dark:bg-white/90!"
+              src="https://cravatar.cn/avatar/00000000000000000000000000000000?s=64&d=identicon"
+              alt={l.name}
+            />
+            <h3 class="my-0! font-medium" style="font-size: 1rem;">{l.name}</h3>
+            {l.desc && <div class="text-xs antialiased opacity-60" style="margin-top: 0.5rem;">{l.desc}</div>}
+            <a class="absolute inset-0 text-[0px]" href={l.url} target="_blank" rel="noopener">{l.name}</a>
+          </section>
+        ))}
+      </div>
+    </section>
+  )}
+</BaseLayout>

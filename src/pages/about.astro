@@ -1,0 +1,29 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { getPageBySlug } from '../lib/wp';
+import { mdToHtml } from '../lib/markdown';
+
+const page = await getPageBySlug('about');
+const contentHtml = page?.content ? mdToHtml(page.content) : '';
+---
+
+<BaseLayout title={page ? page.title : '关于'} description={page ? page.title : '关于本站'}>
+  {contentHtml ? (
+    <article>
+      <header class="mb-14">
+        <h1 class="my-0! pb-2.5">{page?.title ?? '关于'}</h1>
+      </header>
+      <section set:html={contentHtml}></section>
+      <script defer src="/assets/highlight.min.js" onload="hljs.initHighlightingOnLoad();"></script>
+    </article>
+  ) : (
+    <article>
+      <header class="mb-14">
+        <h1 class="my-0! pb-2.5">关于</h1>
+      </header>
+      <section>
+        <p class="text-xs antialiased opacity-60">暂无关于页面内容</p>
+      </section>
+    </article>
+  )}
+</BaseLayout>

@@ -1,0 +1,27 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import PostCard from '../components/PostCard.astro';
+import { getAllPosts } from '../lib/wp';
+
+const posts = await getAllPosts();
+
+// 按年份分组
+const groups = posts.reduce((acc, p) => {
+  const year = new Date(p.date).getFullYear();
+  (acc[year] ??= []).push(p);
+  return acc;
+}, {} as Record<number, typeof posts>);
+
+const years = Object.keys(groups).sort((a, b) => Number(b) - Number(a));
+---
+
+<BaseLayout title="归档" description="按年份归档的文章列表">
+  {years.map((y) => (
+    <section class="relative my-10 first-of-type:mt-0 last-of-type:mb-0">
+      <h2 class="mb-14">{y}</h2>
+      {groups[Number(y)].map((post) => (
+        <PostCard post={post} />
+      ))}
+    </section>
+  ))}
+</BaseLayout>
