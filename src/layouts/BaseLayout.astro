@@ -24,6 +24,17 @@ const faviconType = favicon.endsWith('.svg') ? 'image/svg+xml' :
     <meta name="description" content={pageDesc} />
     <meta name="theme-color" content="#faf8f1" />
     <title>{pageTitle}</title>
+    <!-- 关键：在渲染前应用主题，防止闪烁 -->
+    <script is:inline>
+      (function() {
+        const stored = localStorage.getItem('dark');
+        const darkScheme = window.matchMedia('(prefers-color-scheme: dark)');
+        const isDark = stored ? stored === 'true' : darkScheme.matches;
+        if (isDark) {
+          document.documentElement.classList.add('dark');
+        }
+      })();
+    </script>
     <link rel="stylesheet" href="/assets/main.css" />
     <link rel="preload" as="image" href="/assets/theme.png" />
     <link rel="alternate" type="application/rss+xml" title={`${brandName} RSS Feed`} href="/rss.xml" />
@@ -127,12 +138,14 @@ const faviconType = favicon.endsWith('.svg') ? 'image/svg+xml' :
         localStorage.setItem('dark', isDark ? 'true' : 'false');
       };
 
-      // init dark
-      const darkScheme = window.matchMedia('(prefers-color-scheme: dark)');
-      const stored = localStorage.getItem('dark');
-      setDark(stored ? stored === 'true' : darkScheme.matches);
+      // init: 仅更新 meta theme-color，dark class 已在 head 中设置
+      const isDarkMode = htmlClass.contains('dark');
+      if (metaTheme) {
+        metaTheme.setAttribute('content', isDarkMode ? '#000' : getLightBg());
+      }
 
       // listen system
+      const darkScheme = window.matchMedia('(prefers-color-scheme: dark)');
       darkScheme.addEventListener('change', (event) => {
         setDark(event.matches);
       });
