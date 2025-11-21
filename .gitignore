@@ -1,0 +1,4 @@
+/node_modules
+test-api.mjs
+/.astro
+.env

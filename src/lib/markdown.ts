@@ -7,9 +7,9 @@ export const md = new MarkdownIt({
 });
 
 /**
- * 粗略判断字符串是否更像 Markdown 而非 HTML。
- * - 存在典型 Markdown 语法
- * - 且不包含明显的 HTML 标签
+ * 判断字符串是否包含 Markdown 语法。
+ * - 检测典型 Markdown 语法标记
+ * - 即使包含 HTML 标签，只要有 Markdown 语法就返回 true
  */
 export function isProbablyMarkdown(input: string): boolean {
   if (!input) return false;
@@ -19,21 +19,29 @@ export function isProbablyMarkdown(input: string): boolean {
     /\*\*[^*]+\*\*/,             // 加粗 **bold**
     /`{1,3}[^`]*`{1,3}/,         // 行内/多行代码
     /(^|\n)```/,                 // 代码块 fence
+    /\[.+?\]\(.+?\)/,            // 链接和图片 [text](url)
   ];
-  const looksMarkdown = indicators.some((re) => re.test(input));
-  const hasHtmlTag = /<\w+[^>]*>/.test(input);
-  return looksMarkdown && !hasHtmlTag;
+  // 只要包含任何 Markdown 语法就返回 true（允许混合 HTML）
+  return indicators.some((re) => re.test(input));
 }
 
 /**
  * 将输入转为 HTML：
- * - 若输入包含明显 HTML 标签，则直接返回原文（认为其已是 HTML）
- * - 否则使用 markdown-it 进行 Markdown 渲染
+ * - 检测是否包含 Markdown 语法（#、##、**、`、[]等）
+ * - 如果包含 Markdown 语法，始终使用 markdown-it 渲染（即使有 HTML 标签）
+ * - 否则直接返回原文
  */
 export function mdToHtml(input: string): string {
   if (!input) return '';
-  if (/<\w+[^>]*>/.test(input)) {
-    return input;
+
+  // 检测是否包含 Markdown 语法
+  const hasMarkdownSyntax = isProbablyMarkdown(input);
+
+  // 如果包含 Markdown 语法，总是进行渲染（markdown-it 会保留 HTML 标签）
+  if (hasMarkdownSyntax) {
+    return md.render(input);
   }
-  return md.render(input);
+
+  // 如果没有 Markdown 语法，直接返回（可能是纯 HTML）
+  return input;
 }
