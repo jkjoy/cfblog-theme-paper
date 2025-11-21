@@ -10,7 +10,10 @@ export interface WPPostRaw {
   slug: string;
   title: { rendered: string };
   excerpt?: { rendered: string };
-  content?: { rendered: string };
+  content?: {
+    rendered: string;
+    raw?: string;  // 原始 Markdown 内容（如果可用）
+  };
   date: string;
   modified: string;
   author: number;
@@ -74,7 +77,8 @@ function mapPost(p: WPPostRaw): WPPost {
     slug: decodeURIComponent(p.slug), // 解码 URL 编码的 slug
     title: p.title?.rendered ?? '',
     excerpt: htmlToText(p.excerpt?.rendered),
-    content: p.content?.rendered,
+    // 优先使用 content.raw（Markdown），如果不存在则使用 content.rendered（HTML）
+    content: p.content?.raw ?? p.content?.rendered,
     date: p.date,
     modified: p.modified,
     author: p.author,
@@ -276,7 +280,10 @@ export interface WPPageRaw {
   id: number;
   slug: string;
   title: { rendered: string };
-  content?: { rendered: string };
+  content?: {
+    rendered: string;
+    raw?: string;  // 原始 Markdown 内容（如果可用）
+  };
   date: string;
   modified: string;
   link?: string;
@@ -296,7 +303,8 @@ function mapPage(p: WPPageRaw): WPPage {
     id: p.id,
     slug: p.slug,
     title: p.title?.rendered ?? '',
-    content: p.content?.rendered,
+    // 优先使用 content.raw（Markdown），如果不存在则使用 content.rendered（HTML）
+    content: p.content?.raw ?? p.content?.rendered,
     date: p.date,
     modified: p.modified,
   };
