@@ -2,3 +2,4 @@
 test-api.mjs
 /.astro
 .env
+/dist

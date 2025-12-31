@@ -1,7 +1,7 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
 import PostCard from '../components/PostCard.astro';
-import { getAllPosts } from '../lib/wp';
+import { getAllPosts, sortPostsPinnedFirst } from '../lib/wp';
 
 const posts = await getAllPosts();
 
@@ -11,6 +11,12 @@ const groups = posts.reduce((acc, p) => {
   (acc[year] ??= []).push(p);
   return acc;
 }, {} as Record<number, typeof posts>);
+
+// 每个年份内：置顶优先，其次按时间倒序
+Object.keys(groups).forEach((y) => {
+  const year = Number(y);
+  groups[year] = sortPostsPinnedFirst(groups[year]);
+});
 
 const years = Object.keys(groups).sort((a, b) => Number(b) - Number(a));
 ---

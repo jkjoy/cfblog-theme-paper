@@ -16,6 +16,7 @@ export interface WPPostRaw {
   };
   date: string;
   modified: string;
+  sticky?: boolean;
   author: number;
   link?: string;
   categories?: number[];
@@ -30,6 +31,7 @@ export interface WPPost {
   content?: string;
   date: string;
   modified: string;
+  sticky?: boolean;
   author: number;
   categories?: number[];
   tags?: number[];
@@ -81,10 +83,20 @@ function mapPost(p: WPPostRaw): WPPost {
     content: p.content?.raw ?? p.content?.rendered,
     date: p.date,
     modified: p.modified,
+    sticky: p.sticky,
     author: p.author,
     categories: p.categories,
     tags: p.tags,
   };
+}
+
+export function sortPostsPinnedFirst(posts: WPPost[]): WPPost[] {
+  return [...posts].sort((a, b) => {
+    const sa = a.sticky ? 1 : 0;
+    const sb = b.sticky ? 1 : 0;
+    if (sa !== sb) return sb - sa;
+    return new Date(b.date).getTime() - new Date(a.date).getTime();
+  });
 }
 
 export async function getPosts(
@@ -95,7 +107,7 @@ export async function getPosts(
     page,
     per_page: perPage,
     _embed: 1,
-    _fields: 'id,slug,title,excerpt,content,date,modified,author,categories,tags',
+    _fields: 'id,slug,title,excerpt,content,date,modified,sticky,author,categories,tags',
   });
   const { data, headers } = await fetchJSON<WPPostRaw[]>(url);
   const totalPages = Number(headers.get('X-WP-TotalPages') || 0);
@@ -107,7 +119,7 @@ export async function getPostBySlug(slug: string): Promise<WPPost | null> {
   const url = buildURL(`${WP_V2}/posts`, {
     slug,
     _embed: 1,
-    _fields: 'id,slug,title,excerpt,content,date,modified,author,categories,tags',
+    _fields: 'id,slug,title,excerpt,content,date,modified,sticky,author,categories,tags',
   });
   const { data } = await fetchJSON<WPPostRaw[]>(url);
   const p = data[0];
@@ -218,7 +230,7 @@ export async function getPostsByCategory(categoryId: number, page = 1, perPage =
     page,
     per_page: perPage,
     _embed: 1,
-    _fields: 'id,slug,title,excerpt,content,date,modified,author,categories,tags',
+    _fields: 'id,slug,title,excerpt,content,date,modified,sticky,author,categories,tags',
   });
   const { data, headers } = await fetchJSON<WPPostRaw[]>(url);
   const totalPages = Number(headers.get('X-WP-TotalPages') || 0);
@@ -232,7 +244,7 @@ export async function getPostsByTag(tagId: number, page = 1, perPage = PAGE_SIZE
     page,
     per_page: perPage,
     _embed: 1,
-    _fields: 'id,slug,title,excerpt,content,date,modified,author,categories,tags',
+    _fields: 'id,slug,title,excerpt,content,date,modified,sticky,author,categories,tags',
   });
   const { data, headers } = await fetchJSON<WPPostRaw[]>(url);
   const totalPages = Number(headers.get('X-WP-TotalPages') || 0);

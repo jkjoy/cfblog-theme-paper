@@ -11,7 +11,12 @@ const pubDate = new Date(post.date).toLocaleDateString('zh-CN', {
 ---
 
 <section class="relative my-10 first-of-type:mt-0 last-of-type:mb-0">
-  <h2 class="my-0!">{post.title}</h2>
+  <h2 class="my-0! flex items-center gap-2">
+    <span>{post.title}</span>
+    {post.sticky && (
+      <span class="post-pin-badge" aria-label="置顶" title="置顶">置顶</span>
+    )}
+  </h2>
   <time class="text-xs antialiased opacity-60" datetime={post.date}>{pubDate}</time>
   <a class="absolute inset-0 text-[0px]" href={`/post/${post.slug}`} aria-label={`阅读文章：${post.title}`}>{post.title}</a>
 </section>

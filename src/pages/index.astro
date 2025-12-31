@@ -2,10 +2,11 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 import PostCard from '../components/PostCard.astro';
 import Pagination from '../components/Pagination.astro';
-import { getPosts, PAGE_SIZE, getUserById } from '../lib/wp';
+import { getPosts, PAGE_SIZE, getUserById, sortPostsPinnedFirst } from '../lib/wp';
 
 const current = 1;
 const { posts, totalPages } = await getPosts(current, PAGE_SIZE);
+const sortedPosts = sortPostsPinnedFirst(posts);
 const user = await getUserById(1); // 获取用户 ID 为 1 的用户信息
 ---
 
@@ -47,7 +48,7 @@ const user = await getUserById(1); // 获取用户 ID 为 1 的用户信息
     </div>
   )}
 
-  {posts.map((post) => (
+  {sortedPosts.map((post) => (
     <PostCard post={post} />
   ))}
 

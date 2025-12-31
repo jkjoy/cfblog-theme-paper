@@ -2,7 +2,7 @@
 import BaseLayout from '../../../../layouts/BaseLayout.astro';
 import PostCard from '../../../../components/PostCard.astro';
 import Pagination from '../../../../components/Pagination.astro';
-import { getTags, getPostsByTag, PAGE_SIZE } from '../../../../lib/wp';
+import { getTags, getPostsByTag, PAGE_SIZE, sortPostsPinnedFirst } from '../../../../lib/wp';
 
 // 预生成每个标签的分页静态路径
 export async function getStaticPaths() {
@@ -25,6 +25,7 @@ const tagId = tag?.id;
 const { posts, totalPages } = tagId
   ? await getPostsByTag(tagId, page, PAGE_SIZE)
   : { posts: [], totalPages: 1 };
+const sortedPosts = sortPostsPinnedFirst(posts);
 ---
 
 <BaseLayout title={tag ? `标签：${tag.name}` : '标签未找到'} description={tag ? `包含 ${tag.count ?? 0} 篇文章` : '未找到该标签'}>
@@ -34,7 +35,7 @@ const { posts, totalPages } = tagId
         {posts.length === 0 ? (
           <p class="empty">此标签暂无文章</p>
         ) : (
-          posts.map((post) => <PostCard post={post} />)
+          sortedPosts.map((post) => <PostCard post={post} />)
         )}
       </section>
       <Pagination current={page} totalPages={totalPages} base={`/tag/${slug}/page`} />

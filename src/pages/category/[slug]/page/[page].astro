@@ -2,7 +2,7 @@
 import BaseLayout from '../../../../layouts/BaseLayout.astro';
 import PostCard from '../../../../components/PostCard.astro';
 import Pagination from '../../../../components/Pagination.astro';
-import { getCategories, getPostsByCategory, PAGE_SIZE } from '../../../../lib/wp';
+import { getCategories, getPostsByCategory, PAGE_SIZE, sortPostsPinnedFirst } from '../../../../lib/wp';
 
 // 预生成每个分类的分页静态路径
 export async function getStaticPaths() {
@@ -25,6 +25,7 @@ const catId = cat?.id;
 const { posts, totalPages } = catId
   ? await getPostsByCategory(catId, page, PAGE_SIZE)
   : { posts: [], totalPages: 1 };
+const sortedPosts = sortPostsPinnedFirst(posts);
 ---
 
 <BaseLayout title={cat ? `分类：${cat.name}` : '分类未找到'} description={cat ? `包含 ${cat.count ?? 0} 篇文章` : '未找到该分类'}>
@@ -33,7 +34,7 @@ const { posts, totalPages } = catId
       {posts.length === 0 ? (
         <p class="text-xs antialiased opacity-60 py-1">此分类暂无文章</p>
       ) : (
-        posts.map((post) => <PostCard post={post} />)
+        sortedPosts.map((post) => <PostCard post={post} />)
       )}
       <Pagination current={page} totalPages={totalPages} base={`/category/${slug}/page`} />
     </>
